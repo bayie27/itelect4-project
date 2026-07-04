@@ -1,0 +1,25 @@
+{
+  "name": "itelect4-project",
+  "version": "1.0.0",
+  "description": "",
+  "homepage": "https://github.com/bayie27/itelect4-project#readme",
+  "bugs": {
+    "url": "https://github.com/bayie27/itelect4-project/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bayie27/itelect4-project.git"
+  },
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}

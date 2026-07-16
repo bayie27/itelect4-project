@@ -1,4 +1,4 @@
-import type { User, Course, Submission } from "../types/index.ts";
+import type { User, Course, Submission } from "./types/index.js";
 
 // ===== PRIMITIVE TYPE ANNOTATIONS =====
 
@@ -62,7 +62,7 @@ console.log(course);
 
 
 // ===== TYPE NARROWING =====
-import type { StringOrNumber } from "../types/index";
+import type { StringOrNumber } from "./types/index";
 // Narrowing with typeof
 // Without the if-check, TypeScript would error:
 // Property 'toUpperCase' does not exist on type 'number'

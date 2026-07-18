@@ -1,154 +1,124 @@
-import type { User, Course, Submission } from "./types/index.js";
+import {
+  EvidenceType,
+  IncidentSeverity,
+  IncidentStatus,
+  ResponseActionStatus,
+  UserRole,
+  type ApiResponse,
+  type CreateIncidentInput,
+  type Evidence,
+  type EntityById,
+  type Incident,
+  type IncidentSummary,
+  type ResponseAction,
+  type RoleCount,
+  type User,
+} from "./types/index";
+import {
+  canResolveIncident,
+  canTransitionIncident,
+  canTransitionResponseAction,
+} from "./domain/rules";
 
-// ===== PRIMITIVE TYPE ANNOTATIONS =====
+const createdAt = "2026-07-18T08:00:00.000Z";
 
-// Variables with explicit types
-const projectName: string = "itelect4-project";
-const currentYear: number = 2026;
-const isFullStack: boolean = true;
-const nothing: null = null;
-const notSet: undefined = undefined;
-
-// Function: typed parameters + typed return value
-function greet(name: string, year: number): string {
-  return `Welcome to ${name} -- AY ${year}!`;
-}
-
-// void: function that does NOT return a value
-function logMessage(message: string): void {
-  console.log(message);
-}
-logMessage(greet(projectName, currentYear));
-
-// ===== SPECIAL TYPES =====
-
-// any -- disables TypeScript type checking
-// [!] Avoid using this; it defeats the purpose of TypeScript
-let anything: any = "hello";
-anything = 42; // No error
-anything = true; // No error
-
-// unknown -- the safer version of any
-// You MUST check the type before using it
-let userInput: unknown = "test";
-if (typeof userInput === "string") {
-  console.log(userInput.toUpperCase()); // OK -- TypeScript knows it's a string here
-}
-
-// never -- a function that NEVER returns
-// Used when a function always throws an error or loops forever
-function throwError(message: string): never {
-  throw new Error(message);
-}
-
-// ===== USING INTERFACES =====
-const student: User = {
-  id: 1,
-  name: "Juan dela Cruz",
-  email: "juan@example.com",
-  role: "student",
+const commander: User = {
+  id: "user-commander-1",
+  name: "Daniel Sahagun",
+  email: "daniel@example.test",
+  role: UserRole.INCIDENT_COMMANDER,
   isActive: true,
+  createdAt,
 };
-const course: Course = {
-  code: "ITELECT4",
-  title: "IT Elective 4",
-  units: 3,
-  semester: "1st Semester 2026-2027",
+
+const responder: User = {
+  id: "user-responder-1",
+  name: "Meloi Magpantay",
+  email: "meloi@example.test",
+  role: UserRole.RESPONDER,
+  isActive: true,
+  createdAt,
 };
-console.log(student);
-console.log(course);
 
-// ===== TYPE NARROWING =====
-import type { StringOrNumber } from "./types/index";
-// Narrowing with typeof
-// Without the if-check, TypeScript would error:
-// Property 'toUpperCase' does not exist on type 'number'
-function processInput(input: StringOrNumber): string {
-  if (typeof input === "string") {
-    return input.toUpperCase(); // TypeScript knows: input is string here
-  }
-  return input.toFixed(2); // TypeScript knows: input is number here
-}
+const incidentInput: CreateIncidentInput = {
+  title: "Suspicious OAuth Application Access",
+  summary: "Fictional accounts authorized an unknown application.",
+  description: "Investigate the simulated consent activity and contain access.",
+  severity: IncidentSeverity.HIGH,
+  commanderId: commander.id,
+  createdById: commander.id,
+};
 
-// Narrowing with instanceof
-// Used with class instances like Date, Error, etc.
-function formatDate(value: string | Date): string {
-  if (value instanceof Date) {
-    return value.toLocaleDateString(); // TypeScript knows: it's a Date
-  }
-  return value; // TypeScript knows: it's a string
-}
-console.log(processInput("hello")); // HELLO
-console.log(processInput(3.14159)); // 3.14
-console.log(formatDate(new Date())); // e.g. 7/4/2026
+const incident: Incident = {
+  id: "incident-1",
+  ...incidentInput,
+  status: IncidentStatus.CONTAINED,
+  reportedAt: createdAt,
+  createdAt,
+  updatedAt: createdAt,
+  containedAt: createdAt,
+};
 
-// ===== GENERIC FUNCTIONS =====
-// T is inferred automatically from whatever array you pass in
-function getFirst<T>(items: T[]): T | undefined {
-  return items[0];
-}
+const action: ResponseAction = {
+  id: "action-1",
+  incidentId: incident.id,
+  title: "Revoke suspicious sessions",
+  description: "Revoke the sessions associated with the fictional accounts.",
+  status: ResponseActionStatus.COMPLETED,
+  priority: 1,
+  proposedById: responder.id,
+  assignedToId: responder.id,
+  approvedById: commander.id,
+  createdAt,
+  startedAt: createdAt,
+  completedAt: createdAt,
+};
 
-// Constrained generic -- T must have an "id: number" field
-function getById<T extends { id: number }>(
-  items: T[],
-  id: number,
+const evidence: Evidence = {
+  id: "evidence-1",
+  incidentId: incident.id,
+  title: "OAuth consent alert",
+  description: "A fictional alert showing unusual application consent activity.",
+  type: EvidenceType.ALERT,
+  isRevealed: true,
+  createdAt,
+  revealedAt: createdAt,
+  revealedById: commander.id,
+};
+
+function getById<T extends { id: string }>(
+  items: readonly T[],
+  id: string,
 ): T | undefined {
   return items.find((item) => item.id === id);
 }
 
-// [student] is an array containing one element
-const firstUser = getFirst<User>([student]);
-const foundUser = getById<User>([student], 1);
-// Each ?. checks whether the object on its left exists before trying to access the next property,
-// preventing errors if any part of the chain is null or undefined.
-console.log(firstUser?.name); // Juan dela Cruz
-console.log(foundUser?.email); // juan@example.com
-
-import type { ApiResponse } from "./types/index";
-const userResponse: ApiResponse<User> = {
+const incidentSummary: IncidentSummary = incident;
+const incidentResponse: ApiResponse<Incident> = {
   success: true,
-  data: student,
+  data: incident,
 };
-const courseResponse: ApiResponse<Course[]> = {
-  success: true,
-  data: [course],
+const usersById: EntityById<User> = {
+  [commander.id]: commander,
+  [responder.id]: responder,
 };
-console.log(userResponse.data.name); // Juan dela Cruz
-
-// ===== USING UTILITY TYPES =====
-import type {
-  UserUpdate,
-  UserPreview,
-  PublicUser,
-  RoleCount,
-} from "./types/index";
-// Partial<T> -- update payload only needs the changed fields
-const patch: UserUpdate = { name: "Juan D. Cruz" };
-// Pick<T,K> -- a lightweight preview object
-const preview: UserPreview = { id: 1, name: "Juan dela Cruz", role: "student" };
-// Omit<T,K> -- safe to expose publicly (no email, no isActive)
-const publicProfile: PublicUser = {
-  id: 1,
-  name: "Juan dela Cruz",
-  role: "student",
+const roleCount: RoleCount = {
+  [UserRole.RESPONDER]: 1,
+  [UserRole.INCIDENT_COMMANDER]: 1,
 };
-// Record<K,T> -- dashboard-style counts
-const roleCount: RoleCount = { student: 45, admin: 2, instructor: 3 };
 
-// ===== ReturnType<T> =====
-function makeSubmission(courseCode: string) {
-  return { id: 1, studentId: 1, courseCode, submittedAt: new Date() };
-}
-
-// Infer the shape directly from the function -- no need to redeclare it
-type NewSubmission = ReturnType<typeof makeSubmission>;
-const gt1Submission: NewSubmission = makeSubmission("ITELECT4");
-
-// ===== USING ENUMS =====
-import { SubmissionStatus, Role } from "./types/index";
-let status: SubmissionStatus = SubmissionStatus.Pending;
-console.log(SubmissionStatus[status]); // "Pending" -- reverse mapping
-status = SubmissionStatus.Graded;
-console.log(status === SubmissionStatus.Graded); // true
-const currentRole: Role = Role.Student;
-console.log(currentRole); // "student"
+console.log(incidentSummary);
+console.log(incidentResponse.data.title);
+console.log(getById([evidence], evidence.id)?.title);
+console.log(usersById[responder.id]?.name);
+console.log(roleCount);
+console.log(
+  canTransitionIncident(IncidentStatus.DETECTED, IncidentStatus.TRIAGING),
+);
+console.log(
+  canTransitionResponseAction(
+    ResponseActionStatus.PROPOSED,
+    ResponseActionStatus.APPROVED,
+  ),
+);
+console.log(canResolveIncident(incident, [action]));

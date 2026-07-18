@@ -1,6 +1,6 @@
 // sample.js -- provided for GT1 Part 1
 // Task: convert to TS (rename sample.ts). Annotate all vars, params, return types
-import type { GTUser } from "../types"
+import type { GTUser } from "./types";
 
 function getUser(id: number): GTUser {
   return {

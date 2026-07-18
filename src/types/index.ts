@@ -1,125 +1,143 @@
-export interface GTUser {
-  id: number;
-  name: string;
-  email: string;
-  role: "student" | "admin" | "instructor"; // only these values
-  isActive: boolean;
-  score: number;
+export type ID = string;
+export type ISODateString = string;
+export type ActionPriority = 1 | 2 | 3;
+
+export enum UserRole {
+  RESPONDER = "responder",
+  INCIDENT_COMMANDER = "incident_commander",
 }
 
-// ===== INTERFACES =====
-// An interface defines the SHAPE of an object -- what fields it must have.
+export enum IncidentSeverity {
+  LOW = "low",
+  MEDIUM = "medium",
+  HIGH = "high",
+  CRITICAL = "critical",
+}
+
+export enum IncidentStatus {
+  DETECTED = "detected",
+  TRIAGING = "triaging",
+  INVESTIGATING = "investigating",
+  CONTAINED = "contained",
+  RESOLVED = "resolved",
+}
+
+export enum ResponseActionStatus {
+  PROPOSED = "proposed",
+  APPROVED = "approved",
+  IN_PROGRESS = "in_progress",
+  COMPLETED = "completed",
+  REJECTED = "rejected",
+}
+
+export enum EvidenceType {
+  ALERT = "alert",
+  LOG_EXCERPT = "log_excerpt",
+  USER_REPORT = "user_report",
+  SCREENSHOT = "screenshot",
+  EMAIL_SAMPLE = "email_sample",
+}
 
 export interface User {
-  id: number;
+  id: ID;
   name: string;
   email: string;
-  role: "student" | "admin" | "instructor"; // only these values
+  role: UserRole;
   isActive: boolean;
+  createdAt: ISODateString;
 }
-export interface Course {
-  code: string;
+
+export interface Incident {
+  id: ID;
   title: string;
-  units: number;
-  semester: string;
-}
-export interface Submission {
-  id: number;
-  studentId: number;
-  courseCode: string;
-  repoUrl: string;
-  submittedAt: Date;
-  score?: number; // ? means this field is optional
-}
-
-// ===== TYPE ALIASES =====
-// A type alias gives a name to any type -- primitives, unions, functions, objects
-
-// Alias for a union type (string OR number)
-export type ID = number | string;
-
-// Alias for an object shape
-export type Coordinate = {
-  x: number;
-  y: number;
-};
-
-// Alias for a function signature
-export type Formatter = (value: number) => string;
-
-// Using them
-const studentId: ID = "S2026-001";
-const position: Coordinate = { x: 10, y: 20 };
-const formatScore: Formatter = (value) => `${value}%`;
-
-console.log(studentId); // S2026-001
-console.log(formatScore(95.5)); // 95.5%
-
-// ===== UNION TYPES -- One OR the other =====
-export type StringOrNumber = string | number;
-export type Status = "pending" | "active" | "inactive"; // literal union
-
-// Function that accepts a union type
-function printId(id: StringOrNumber): void {
-  console.log(`ID: ${id}`);
+  summary: string;
+  description: string;
+  severity: IncidentSeverity;
+  status: IncidentStatus;
+  reportedAt: ISODateString;
+  commanderId: ID;
+  createdById: ID;
+  createdAt: ISODateString;
+  updatedAt: ISODateString;
+  containedAt?: ISODateString;
+  resolvedAt?: ISODateString;
 }
 
-printId(101);
-printId("S2026-001");
+export interface ResponseAction {
+  id: ID;
+  incidentId: ID;
+  title: string;
+  description: string;
+  status: ResponseActionStatus;
+  priority: ActionPriority;
+  proposedById: ID;
+  createdAt: ISODateString;
+  assignedToId?: ID;
+  approvedById?: ID;
+  startedAt?: ISODateString;
+  completedAt?: ISODateString;
+}
 
-// ===== INTERSECTION TYPES -- combines ALL properties =====
-// StudentWithCourse must have all User fields AND enrolledCourse AND gpa
+export interface Evidence {
+  id: ID;
+  incidentId: ID;
+  title: string;
+  description: string;
+  type: EvidenceType;
+  isRevealed: boolean;
+  createdAt: ISODateString;
+  revealedAt?: ISODateString;
+  revealedById?: ID;
+}
 
-export type StudentWithCourse = User & {
-  enrolledCourse: Course;
-  gpa: number;
-};
-
-const topStudent: StudentWithCourse = {
-  id: 1,
-  name: "Maria Santos",
-  email: "m@example.com",
-  role: "student",
-  isActive: true,
-  enrolledCourse: {
-    code: "ITELECT4",
-    title: "IT Elective 4",
-    units: 3,
-    semester: "1st",
-  },
-  gpa: 1.25,
-};
-
-// ===== GENERIC INTERFACE =====
-// ApiResponse<T> can wrap ANY data type -- every future GT reuses this
 export interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
 }
 
-// ===== UTILITY TYPES =====
-// Partial<T> -- every field becomes optional
-export type UserUpdate = Partial<User>;
-// Pick<T, K> -- keep ONLY the listed fields
-export type UserPreview = Pick<User, "id" | "name" | "role">;
-// Omit<T, K> -- keep every field EXCEPT the listed ones
-export type PublicUser = Omit<User, "email" | "isActive">;
-// Record<K, T> -- a fixed set of keys, each mapped to the same value type
-export type RoleCount = Record<"student" | "admin" | "instructor", number>;
-
-// ===== ENUMS =====
-// Regular enum -- exists at runtime; can be looped over or reverse-mapped
-enum SubmissionStatus {
-  Pending,
-  Graded,
-  Late,
-}
-// const enum -- inlined at compile time, zero runtime overhead
-const enum Role {
-  Student = "student",
-  Admin = "admin",
-  Instructor = "instructor",
+export interface PaginatedResponse<T> {
+  items: T[];
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
 }
 
-export { SubmissionStatus, Role };
+export interface ApiError {
+  message: string;
+  code?: string;
+  fieldErrors?: Record<string, string>;
+}
+
+export type CreateIncidentInput = Omit<
+  Incident,
+  "id" | "status" | "reportedAt" | "createdAt" | "updatedAt" | "containedAt" | "resolvedAt"
+>;
+
+export type UpdateIncidentInput = Partial<
+  Pick<Incident, "title" | "summary" | "description" | "severity" | "commanderId">
+>;
+
+export type IncidentSummary = Pick<
+  Incident,
+  "id" | "title" | "severity" | "status" | "reportedAt"
+>;
+
+export type CreateResponseActionInput = Omit<
+  ResponseAction,
+  "id" | "status" | "approvedById" | "createdAt" | "startedAt" | "completedAt"
+>;
+
+export type UpdateResponseActionInput = Partial<
+  Pick<ResponseAction, "title" | "description" | "priority" | "assignedToId">
+>;
+
+export type CreateEvidenceInput = Omit<
+  Evidence,
+  "id" | "isRevealed" | "createdAt" | "revealedAt" | "revealedById"
+>;
+
+export type PublicUser = Omit<User, "email">;
+export type RoleCount = Record<UserRole, number>;
+export type EntityById<T extends { id: ID }> = Record<ID, T>;

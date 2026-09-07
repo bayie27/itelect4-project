@@ -1,0 +1,79 @@
+{
+  "incidents": [
+    {
+      "id": "incident-1",
+      "title": "Suspicious OAuth Application Access",
+      "summary": "Fictional accounts authorized an unknown application.",
+      "description": "Investigate the simulated consent activity and contain access.",
+      "severity": "high",
+      "status": "contained",
+      "reportedAt": "2026-07-18T08:00:00.000Z",
+      "commanderId": "user-commander-1",
+      "createdById": "user-commander-1",
+      "createdAt": "2026-07-18T08:00:00.000Z",
+      "updatedAt": "2026-07-18T10:30:00.000Z",
+      "containedAt": "2026-07-18T10:30:00.000Z"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "evidence-1",
+      "incidentId": "incident-1",
+      "title": "OAuth consent alert",
+      "description": "A fictional alert shows unusual application consent activity.",
+      "type": "alert",
+      "isRevealed": true,
+      "createdAt": "2026-07-18T08:15:00.000Z",
+      "revealedAt": "2026-07-18T08:30:00.000Z",
+      "revealedById": "user-commander-1"
+    },
+    {
+      "id": "evidence-2",
+      "incidentId": "incident-1",
+      "title": "Simulated user report",
+      "description": "A fictional user reported unexpected access prompts.",
+      "type": "user_report",
+      "isRevealed": false,
+      "createdAt": "2026-07-18T08:20:00.000Z"
+    }
+  ],
+  "responseActions": [
+    {
+      "id": "action-1",
+      "incidentId": "incident-1",
+      "title": "Revoke suspicious sessions",
+      "description": "Revoke the sessions associated with the fictional accounts.",
+      "status": "completed",
+      "priority": 1,
+      "proposedById": "user-responder-1",
+      "assignedToId": "user-responder-1",
+      "approvedById": "user-commander-1",
+      "createdAt": "2026-07-18T08:45:00.000Z",
+      "startedAt": "2026-07-18T09:00:00.000Z",
+      "completedAt": "2026-07-18T09:45:00.000Z"
+    },
+    {
+      "id": "action-2",
+      "incidentId": "incident-1",
+      "title": "Document lessons learned",
+      "description": "Record the fictional investigation findings for the report.",
+      "status": "approved",
+      "priority": 2,
+      "proposedById": "user-commander-1",
+      "assignedToId": "user-commander-1",
+      "approvedById": "user-commander-1",
+      "createdAt": "2026-07-18T10:00:00.000Z"
+    },
+    {
+      "incidentId": "incident-1",
+      "title": "Review fictional accounts",
+      "description": "Review the fictional accounts connected to the simulated OAuth alert.",
+      "priority": 2,
+      "proposedById": "user-responder-1",
+      "status": "proposed",
+      "createdAt": "2026-09-07T06:14:00.978Z",
+      "id": "O12Zi_3Wiyk"
+    }
+  ],
+  "$schema": "./node_modules/json-server/schema.json"
+}

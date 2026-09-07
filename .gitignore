@@ -144,3 +144,4 @@ vite.config.ts.timestamp-*
 
 .agents
 skills-lock.json
+docs/project-journal/

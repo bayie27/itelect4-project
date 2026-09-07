@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from "react-router";
 import { useAuthStore } from "../store/authStore";
-import { useToggle } from "../hooks/useToggle";
+import { useUiStore } from "../store/uiStore";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }): string =>
   `rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
@@ -15,7 +15,8 @@ const secondaryButtonClass =
 export function Layout() {
   const token = useAuthStore((state) => state.token);
   const logout = useAuthStore((state) => state.logout);
-  const [isDarkMode, toggleDarkMode] = useToggle(false);
+  const isDarkMode = useUiStore((state) => state.isDarkMode);
+  const toggleDarkMode = useUiStore((state) => state.toggleDarkMode);
 
   return (
     <div className={isDarkMode ? "dark" : ""}>
@@ -27,7 +28,7 @@ export function Layout() {
                 Incident command room
               </h1>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Typed mock incident-response components.
+                Fictional incident-response training room.
               </p>
             </div>
             <nav className="flex flex-wrap items-center gap-1">

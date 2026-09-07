@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export interface AuthState {
   token: string | null;
@@ -6,8 +7,16 @@ export interface AuthState {
   logout: () => void;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  login: (token) => set({ token }),
-  logout: () => set({ token: null }),
-}));
+export const useAuthStore = create<AuthState>()(
+  persist(
+    (set) => ({
+      token: null,
+      login: (token) => set({ token }),
+      logout: () => set({ token: null }),
+    }),
+    {
+      name: "cirs-auth",
+      partialize: (state) => ({ token: state.token }),
+    },
+  ),
+);

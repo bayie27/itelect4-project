@@ -19,14 +19,14 @@ Read the product spec and technical reference before changing a domain rule or A
 
 ## Current state
 
-The repository has completed GT1, GT2, and GT3 Part 1. The current committed application is a static React frontend with mock data and routing. Session 7 / GT3 Part 2 is the next implementation task.
+The repository has completed GT1, GT2, and GT3 Parts 1 and 2. The current application is a React frontend with routing, protected routes, persisted Zustand client state, TanStack Query, and a json-server-backed local API. Session 8 / GT3 Part 3 adds validated forms and owned UI components.
 
 - `src/types/index.ts` is the canonical CIRS domain model. It contains the enums, `User`, `Incident`, `ResponseAction`, `Evidence`, API envelope types, and utility-derived inputs and views.
 - `src/domain/rules.ts` is the source of truth for incident and response-action transitions and resolution eligibility. Future server code must reuse these rules.
 - `src/App.tsx` contains the route table. `src/components/Layout.tsx` owns shared navigation and `<Outlet />`; `src/components/ProtectedRoute.tsx` guards authenticated routes.
-- `src/pages/` contains the dashboard, incident detail, evidence, actions, login, and not-found pages.
+- `src/pages/` contains the dashboard, incident detail, evidence, actions, login, and not-found pages. `ActionsPage.tsx` owns the Session 8 response-action form and its Zod-backed local validation.
 - `src/store/authStore.ts` contains the current client-only fake authentication token. There is no real backend or session yet.
-- `src/data/mockData.ts` and `src/hooks/useMockResource.ts` currently provide the in-memory demo data and simulated loading/error behavior. GT3 Part 2 may replace them only where the approved Session 7 proposal requires.
+- `db.json` and `src/api/client.ts` provide the fictional local API data and transport boundary. The old `src/data/mockData.ts` and `src/hooks/useMockResource.ts` were removed in GT3 Part 2.
 - `src/gt1/` is the isolated JavaScript-to-TypeScript exercise and must remain separate from the CIRS domain model.
 
 The target architecture later adds an Express REST API, persistent storage, TanStack Query for server state, Zustand only for client-only state, Socket.io for the narrow response-action events, and server-side Gemini report generation. Do not implement those future pieces unless the assigned session requires them.

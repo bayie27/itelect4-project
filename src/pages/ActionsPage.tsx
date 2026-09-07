@@ -1,17 +1,21 @@
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
-import { useState, type ChangeEvent, type FormEvent } from "react";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ResponseActionCard } from "../components/ResponseActionCard";
 import { createResponseAction, fetchIncidents, fetchResponseActions } from "../api/client";
 import type {
-  ActionPriority,
   CreateResponseActionInput,
   Incident,
   ResponseAction,
 } from "../types";
+import {
+  responseActionSchema,
+  type ResponseActionFormValues,
+} from "../schemas/responseActionSchema";
 
 function LoadingSkeleton() {
   return (
@@ -51,9 +55,7 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
 const inputClass =
   "mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
-function isActionPriority(value: number): value is ActionPriority {
-  return value === 1 || value === 2 || value === 3;
-}
+const fieldErrorClass = "mt-1 text-sm text-red-700 dark:text-red-300";
 
 export function ActionsPage() {
   const queryClient = useQueryClient();
@@ -65,10 +67,21 @@ export function ActionsPage() {
     queryKey: ["responseActions"],
     queryFn: fetchResponseActions,
   });
-  const [incidentId, setIncidentId] = useState("");
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [priority, setPriority] = useState<ActionPriority>(2);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ResponseActionFormValues>({
+    resolver: zodResolver(responseActionSchema),
+    mode: "onBlur",
+    defaultValues: {
+      incidentId: "",
+      title: "",
+      description: "",
+      priority: 2,
+    },
+  });
   const [activityMessage, setActivityMessage] = useState(
     "Review a response action to see a typed interaction.",
   );
@@ -77,10 +90,7 @@ export function ActionsPage() {
     mutationFn: createResponseAction,
     onSuccess: (createdAction) => {
       void queryClient.invalidateQueries({ queryKey: ["responseActions"] });
-      setIncidentId("");
-      setTitle("");
-      setDescription("");
-      setPriority(2);
+      reset();
       setActivityMessage(`Proposed ${createdAction.title}.`);
     },
   });
@@ -89,21 +99,9 @@ export function ActionsPage() {
     setActivityMessage(`Reviewing ${action.title}.`);
   };
 
-  const handlePriorityChange = (event: ChangeEvent<HTMLSelectElement>): void => {
-    const nextPriority = Number(event.target.value);
-    if (isActionPriority(nextPriority)) {
-      setPriority(nextPriority);
-    }
-  };
-
-  const handleAddAction = (event: FormEvent<HTMLFormElement>): void => {
-    event.preventDefault();
-
+  const handleAddAction = (values: ResponseActionFormValues): void => {
     const input: CreateResponseActionInput = {
-      incidentId,
-      title: title.trim(),
-      description: description.trim(),
-      priority,
+      ...values,
       proposedById: "user-responder-1",
     };
 
@@ -166,20 +164,23 @@ export function ActionsPage() {
         </p>
       ) : (
         <form
-          onSubmit={handleAddAction}
+          onSubmit={handleSubmit(handleAddAction)}
           className="mt-4 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
         >
           <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
             Propose a response action
           </h3>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <label className="text-sm text-slate-700 dark:text-slate-300">
-              Incident
+            <div className="grid gap-1.5">
+              <Label htmlFor="incidentId" className="text-slate-700 dark:text-slate-300">
+                Incident
+              </Label>
               <select
-                value={incidentId}
-                onChange={(event) => setIncidentId(event.target.value)}
-                className={inputClass}
-                required
+                id="incidentId"
+                {...register("incidentId")}
+                aria-invalid={errors.incidentId ? true : undefined}
+                aria-describedby={errors.incidentId ? "incidentId-error" : undefined}
+                className={`${inputClass} aria-invalid:border-red-500`}
               >
                 <option value="">Select an incident…</option>
                 {incidents.map((incident) => (
@@ -188,54 +189,74 @@ export function ActionsPage() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="text-sm text-slate-700 dark:text-slate-300">
-              Priority
+              {errors.incidentId && (
+                <p id="incidentId-error" className={fieldErrorClass} role="alert">
+                  {errors.incidentId.message}
+                </p>
+              )}
+            </div>
+            <div className="grid gap-1.5">
+              <Label htmlFor="priority" className="text-slate-700 dark:text-slate-300">
+                Priority
+              </Label>
               <select
-                value={priority}
-                onChange={handlePriorityChange}
-                className={inputClass}
+                id="priority"
+                {...register("priority", { valueAsNumber: true })}
+                aria-invalid={errors.priority ? true : undefined}
+                aria-describedby={errors.priority ? "priority-error" : undefined}
+                className={`${inputClass} aria-invalid:border-red-500`}
               >
                 <option value={1}>1 - highest</option>
                 <option value={2}>2 - normal</option>
                 <option value={3}>3 - lowest</option>
               </select>
-            </label>
+              {errors.priority && (
+                <p id="priority-error" className={fieldErrorClass} role="alert">
+                  {errors.priority.message}
+                </p>
+              )}
+            </div>
           </div>
-          <label className="mt-3 block text-sm text-slate-700 dark:text-slate-300">
-            Action title
-            <input
+          <div className="mt-3 grid gap-1.5">
+            <Label htmlFor="action-title" className="text-slate-700 dark:text-slate-300">
+              Action title
+            </Label>
+            <Input
+              id="action-title"
+              {...register("title")}
+              aria-invalid={errors.title ? true : undefined}
+              aria-describedby={errors.title ? "title-error" : undefined}
               type="text"
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              className={inputClass}
               placeholder="Review affected accounts"
-              required
             />
-          </label>
-          <label className="mt-3 block text-sm text-slate-700 dark:text-slate-300">
-            Description
+            {errors.title && (
+              <p id="title-error" className={fieldErrorClass} role="alert">
+                {errors.title.message}
+              </p>
+            )}
+          </div>
+          <div className="mt-3 grid gap-1.5">
+            <Label htmlFor="action-description" className="text-slate-700 dark:text-slate-300">
+              Description
+            </Label>
             <textarea
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              className={inputClass}
+              id="action-description"
+              {...register("description")}
+              aria-invalid={errors.description ? true : undefined}
+              aria-describedby={errors.description ? "description-error" : undefined}
+              className={`${inputClass} aria-invalid:border-red-500`}
               placeholder="Describe the fictional response work."
               rows={3}
-              required
             />
-          </label>
-          <button
-            type="submit"
-            disabled={
-              addAction.isPending ||
-              incidentId === "" ||
-              title.trim() === "" ||
-              description.trim() === ""
-            }
-            className="mt-3 inline-flex items-center rounded-md border border-cyan-500/50 bg-cyan-500/10 px-3 py-1.5 text-sm font-medium text-cyan-700 transition-colors hover:border-cyan-400 hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-cyan-300"
-          >
+            {errors.description && (
+              <p id="description-error" className={fieldErrorClass} role="alert">
+                {errors.description.message}
+              </p>
+            )}
+          </div>
+          <Button type="submit" disabled={addAction.isPending} className="mt-3">
             {addAction.isPending ? "Saving…" : "Propose action"}
-          </button>
+          </Button>
           {addAction.isError && (
             <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">
               {addAction.error.message}

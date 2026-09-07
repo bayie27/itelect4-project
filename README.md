@@ -40,9 +40,9 @@ Each topic has one canonical home. Update the relevant document when a product r
 
 ## Current milestone
 
-Module 1 establishes the TypeScript domain model used by later graded tasks. Canonical shared types live in `src/types/index.ts`, reusable lifecycle rules live in `src/domain/rules.ts`, and the original conversion exercise remains isolated under `src/gt1`.
+GT3 Part 3 completes the Module 3 frontend milestone. The application now combines React Router, protected routes, persisted Zustand client state, TanStack Query server state, a json-server REST boundary, React Hook Form, Zod runtime validation, and owned Shadcn UI components.
 
-The Part 1 class-demo interfaces `User`, `Course`, and `Submission` remain available in `src/types/index.ts` for checklist compatibility. The CIRS application itself uses `User`, `Incident`, `ResponseAction`, and `Evidence` as its domain entities.
+Canonical shared types live in `src/types/index.ts`, reusable lifecycle rules live in `src/domain/rules.ts`, and the original conversion exercise remains isolated under `src/gt1`. The CIRS application uses `User`, `Incident`, `ResponseAction`, and `Evidence` as its domain entities.
 
 ## Types defined so far
 
@@ -77,16 +77,24 @@ Install dependencies:
 npm install
 ```
 
+Run the local API and frontend in separate terminals:
+
+```bash
+npm run api
+npm run dev
+```
+
 Type-check the project:
 
 ```bash
 npx tsc --noEmit
 ```
 
-Run the TypeScript examples:
+Run lint and the production build:
 
 ```bash
-npx ts-node src/index.ts
+npm run lint
+npm run build
 ```
 
-The React, API, testing, and deployment commands will be added in the modules that introduce those tools.
+The local frontend uses fictional data from `db.json` through json-server on port 3001. Authentication, authorization, lifecycle enforcement, testing, and deployment remain future module work.

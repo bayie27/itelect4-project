@@ -1,53 +1,144 @@
-import {
-  ResponseActionStatus,
-  type CreateResponseActionInput,
-  type Evidence,
-  type Incident,
-  type ResponseAction,
+import type {
+  CreateResponseActionInput,
+  Evidence,
+  Incident,
+  ResponseAction,
+  User,
 } from "../types";
+import { useAuthStore } from "../store/authStore";
 
-export const API_URL = "http://localhost:3001";
+export interface AuthSession {
+  token: string;
+  user: User;
+}
 
-async function readJson<T>(response: Response, errorMessage: string): Promise<T> {
-  if (!response.ok) {
-    throw new Error(errorMessage);
+export interface LoginInput {
+  email: string;
+  password: string;
+}
+
+export interface RegistrationInput extends LoginInput {
+  name: string;
+  role: User["role"];
+}
+
+function getApiOrigin(): string {
+  const configuredOrigin = import.meta.env.VITE_API_URL?.trim();
+  if (!configuredOrigin) {
+    throw new Error("VITE_API_URL is missing. Set the backend origin in the frontend environment.");
   }
 
-  return (await response.json()) as T;
+  return configuredOrigin.replace(/\/+$/, "");
 }
 
-export async function fetchIncidents(): Promise<Incident[]> {
-  const response = await fetch(`${API_URL}/incidents`);
-  return readJson<Incident[]>(response, "Could not load incidents.");
+async function readResponseBody(response: Response): Promise<unknown> {
+  const body = await response.text();
+  if (!body) return undefined;
+
+  try {
+    return JSON.parse(body) as unknown;
+  } catch {
+    return body;
+  }
 }
 
-export async function fetchIncidentById(incidentId: string): Promise<Incident> {
-  const response = await fetch(`${API_URL}/incidents/${incidentId}`);
-  return readJson<Incident>(response, `No incident found for id "${incidentId}".`);
+function getErrorMessage(body: unknown, status: number): string {
+  if (typeof body === "object" && body !== null && "message" in body) {
+    const message = body.message;
+    if (typeof message === "string" && message.trim()) return message;
+  }
+
+  return `The API request failed with status ${status}.`;
 }
 
-export async function fetchEvidence(): Promise<Evidence[]> {
-  const response = await fetch(`${API_URL}/evidence`);
-  return readJson<Evidence[]>(response, "Could not load evidence.");
+export async function request<T>(
+  path: string,
+  init: RequestInit = {},
+  authenticated = true,
+): Promise<T> {
+  const headers = new Headers(init.headers);
+  headers.set("Accept", "application/json");
+  if (init.body !== undefined && !(init.body instanceof FormData) && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const authAtRequest = authenticated ? useAuthStore.getState() : null;
+  if (authAtRequest?.token) headers.set("Authorization", `Bearer ${authAtRequest.token}`);
+
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  const response = await fetch(`${getApiOrigin()}${normalizedPath}`, { ...init, headers });
+  const body = await readResponseBody(response);
+
+  if (!response.ok) {
+    const message = getErrorMessage(body, response.status);
+    if (
+      response.status === 401 &&
+      authAtRequest?.token &&
+      useAuthStore.getState().token === authAtRequest.token &&
+      useAuthStore.getState().sessionVersion === authAtRequest.sessionVersion
+    ) {
+      useAuthStore.getState().expireSession(message);
+    }
+    throw new Error(message);
+  }
+
+  return body as T;
 }
 
-export async function fetchResponseActions(): Promise<ResponseAction[]> {
-  const response = await fetch(`${API_URL}/responseActions`);
-  return readJson<ResponseAction[]>(response, "Could not load response actions.");
+export function login(input: LoginInput): Promise<AuthSession> {
+  return request<AuthSession>(
+    "/api/auth/login",
+    { method: "POST", body: JSON.stringify(input) },
+    false,
+  );
 }
 
-export async function createResponseAction(
-  input: CreateResponseActionInput,
+export function register(input: RegistrationInput): Promise<AuthSession> {
+  return request<AuthSession>(
+    "/api/auth/register",
+    { method: "POST", body: JSON.stringify(input) },
+    false,
+  );
+}
+
+export function fetchIncidents(): Promise<Incident[]> {
+  return request<Incident[]>("/api/incidents");
+}
+
+export function fetchIncidentById(incidentId: string): Promise<Incident> {
+  return request<Incident>(`/api/incidents/${encodeURIComponent(incidentId)}`);
+}
+
+export async function fetchResponseActions(incidentIds: readonly string[]): Promise<ResponseAction[]> {
+  const actionLists = await Promise.all(
+    incidentIds.map((incidentId) =>
+      request<ResponseAction[]>(`/api/incidents/${encodeURIComponent(incidentId)}/actions`),
+    ),
+  );
+  return actionLists.flat();
+}
+
+export function createResponseAction(
+  incidentId: string,
+  input: Pick<CreateResponseActionInput, "title" | "description" | "priority">,
 ): Promise<ResponseAction> {
-  const response = await fetch(`${API_URL}/responseActions`, {
+  return request<ResponseAction>(`/api/incidents/${encodeURIComponent(incidentId)}/actions`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      ...input,
-      status: ResponseActionStatus.PROPOSED,
-      createdAt: new Date().toISOString(),
-    }),
+    body: JSON.stringify(input),
   });
+}
 
-  return readJson<ResponseAction>(response, "Could not save the response action.");
+export async function fetchEvidence(incidentIds: readonly string[]): Promise<Evidence[]> {
+  const evidenceLists = await Promise.all(
+    incidentIds.map((incidentId) =>
+      request<Evidence[]>(`/api/incidents/${encodeURIComponent(incidentId)}/evidence`),
+    ),
+  );
+  return evidenceLists.flat();
+}
+
+export function revealEvidence(evidenceId: string): Promise<Evidence> {
+  return request<Evidence>(`/api/evidence/${encodeURIComponent(evidenceId)}/reveal`, {
+    method: "PATCH",
+  });
 }

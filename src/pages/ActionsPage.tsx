@@ -63,9 +63,11 @@ export function ActionsPage() {
     queryKey: ["incidents"],
     queryFn: fetchIncidents,
   });
+  const incidentIds = incidentsQuery.data?.map((incident) => incident.id) ?? [];
   const actionsQuery = useQuery<ResponseAction[]>({
-    queryKey: ["responseActions"],
-    queryFn: fetchResponseActions,
+    queryKey: ["responseActions", incidentIds],
+    queryFn: () => fetchResponseActions(incidentIds),
+    enabled: incidentsQuery.isSuccess,
   });
   const {
     register,
@@ -87,7 +89,13 @@ export function ActionsPage() {
   );
 
   const addAction = useMutation({
-    mutationFn: createResponseAction,
+    mutationFn: ({
+      incidentId,
+      input,
+    }: {
+      incidentId: string;
+      input: Pick<CreateResponseActionInput, "title" | "description" | "priority">;
+    }) => createResponseAction(incidentId, input),
     onSuccess: (createdAction) => {
       void queryClient.invalidateQueries({ queryKey: ["responseActions"] });
       reset();
@@ -100,16 +108,12 @@ export function ActionsPage() {
   };
 
   const handleAddAction = (values: ResponseActionFormValues): void => {
-    const input: CreateResponseActionInput = {
-      ...values,
-      proposedById: "user-responder-1",
-    };
-
-    addAction.mutate(input);
+    const { incidentId, ...input } = values;
+    addAction.mutate({ incidentId, input });
   };
 
-  const isLoading = incidentsQuery.isPending || actionsQuery.isPending;
-  const queryError = incidentsQuery.error ?? actionsQuery.error;
+  const isLoading = incidentsQuery.isPending || (incidentsQuery.isSuccess && actionsQuery.isPending);
+  const queryError = incidentsQuery.error ?? (actionsQuery.isError ? actionsQuery.error : null);
 
   if (isLoading) {
     return (

@@ -3,6 +3,8 @@ import type { Evidence } from "../types";
 export interface EvidenceCardProps {
   evidence: Evidence;
   onReveal: (evidence: Evidence) => void;
+  canReveal: boolean;
+  isRevealing?: boolean;
   variant?: "default" | "compact";
 }
 
@@ -15,8 +17,15 @@ const buttonActive =
   "border-cyan-500/50 bg-cyan-500/10 text-cyan-700 hover:border-cyan-400 hover:bg-cyan-500/20 dark:text-cyan-300";
 const buttonDisabled = "border-slate-300 bg-slate-100 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400";
 
-export function EvidenceCard({ evidence, onReveal, variant = "default" }: EvidenceCardProps) {
+export function EvidenceCard({
+  evidence,
+  onReveal,
+  canReveal,
+  isRevealing = false,
+  variant = "default",
+}: EvidenceCardProps) {
   const handleReveal = () => onReveal(evidence);
+  const isDisabled = evidence.isRevealed || isRevealing;
 
   if (variant === "compact") {
     return (
@@ -29,14 +38,18 @@ export function EvidenceCard({ evidence, onReveal, variant = "default" }: Eviden
             {evidence.type}
           </p>
         </div>
-        <button
-          className={`${buttonBase} shrink-0 ${evidence.isRevealed ? buttonDisabled : buttonActive}`}
-          type="button"
-          onClick={handleReveal}
-          disabled={evidence.isRevealed}
-        >
-          {evidence.isRevealed ? "Revealed" : "Reveal"}
-        </button>
+        {canReveal ? (
+          <button
+            className={`${buttonBase} shrink-0 ${isDisabled ? buttonDisabled : buttonActive}`}
+            type="button"
+            onClick={handleReveal}
+            disabled={isDisabled}
+          >
+            {isRevealing ? "Revealing…" : evidence.isRevealed ? "Revealed" : "Reveal"}
+          </button>
+        ) : evidence.isRevealed ? (
+          <span className="shrink-0 text-xs font-medium text-emerald-700 dark:text-emerald-300">Revealed</span>
+        ) : null}
       </article>
     );
   }
@@ -52,14 +65,18 @@ export function EvidenceCard({ evidence, onReveal, variant = "default" }: Eviden
       <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
         {evidence.isRevealed ? evidence.description : "This evidence is hidden."}
       </p>
-      <button
-        className={`${buttonBase} mt-3 ${evidence.isRevealed ? buttonDisabled : buttonActive}`}
-        type="button"
-        onClick={handleReveal}
-        disabled={evidence.isRevealed}
-      >
-        {evidence.isRevealed ? "Evidence revealed" : "Reveal evidence"}
-      </button>
+      {canReveal ? (
+        <button
+          className={`${buttonBase} mt-3 ${isDisabled ? buttonDisabled : buttonActive}`}
+          type="button"
+          onClick={handleReveal}
+          disabled={isDisabled}
+        >
+          {isRevealing ? "Revealing…" : evidence.isRevealed ? "Evidence revealed" : "Reveal evidence"}
+        </button>
+      ) : evidence.isRevealed ? (
+        <p className="mt-3 text-xs font-medium text-emerald-700 dark:text-emerald-300">Evidence revealed by an incident commander.</p>
+      ) : null}
     </article>
   );
 }

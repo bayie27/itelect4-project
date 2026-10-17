@@ -42,9 +42,14 @@ export function Layout() {
                 Actions
               </NavLink>
               {token === null ? (
-                <NavLink to="/login" className={navLinkClass}>
-                  Login
-                </NavLink>
+                <>
+                  <NavLink to="/login" className={navLinkClass}>
+                    Login
+                  </NavLink>
+                  <NavLink to="/register" className={navLinkClass}>
+                    Register
+                  </NavLink>
+                </>
               ) : (
                 <button type="button" onClick={logout} className={secondaryButtonClass}>
                   Logout

@@ -1,9 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { EvidenceCard } from "../components/EvidenceCard";
-import { fetchEvidence } from "../api/client";
+import { fetchEvidence, fetchIncidents, revealEvidence } from "../api/client";
 import { useUiStore } from "../store/uiStore";
 import { useState } from "react";
-import type { Evidence } from "../types";
+import { useAuthStore } from "../store/authStore";
+import { UserRole, type Evidence, type Incident } from "../types";
 
 function LoadingSkeleton() {
   return (
@@ -41,20 +42,46 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 export function EvidencePage() {
-  const { data: evidenceList = [], isPending, isError, error, refetch } = useQuery<Evidence[]>({
-    queryKey: ["evidence"],
-    queryFn: fetchEvidence,
+  const queryClient = useQueryClient();
+  const incidentsQuery = useQuery<Incident[]>({
+    queryKey: ["incidents"],
+    queryFn: fetchIncidents,
+  });
+  const incidentIds = incidentsQuery.data?.map((incident) => incident.id) ?? [];
+  const evidenceQuery = useQuery<Evidence[]>({
+    queryKey: ["evidence", incidentIds],
+    queryFn: () => fetchEvidence(incidentIds),
+    enabled: incidentsQuery.isSuccess,
   });
   const searchTerm = useUiStore((state) => state.searchTerm);
   const setSearchTerm = useUiStore((state) => state.setSearchTerm);
-  const [revealedEvidenceId, setRevealedEvidenceId] = useState<string | null>(null);
-  const [activityMessage, setActivityMessage] = useState(
-    "Reveal a piece of evidence to see a typed interaction.",
+  const user = useAuthStore((state) => state.user);
+  const isCommander = user?.role === UserRole.INCIDENT_COMMANDER;
+  const [activityMessage, setActivityMessage] = useState(() =>
+    isCommander
+      ? "Reveal an unrevealed item to inspect its fictional details."
+      : "Responders can inspect evidence revealed by an incident commander.",
   );
+  const revealMutation = useMutation({
+    mutationFn: revealEvidence,
+    onSuccess: (revealedEvidence) => {
+      void queryClient.invalidateQueries({ queryKey: ["evidence"] });
+      setActivityMessage(`Revealed ${revealedEvidence.title}.`);
+    },
+  });
+
+  const isPending = incidentsQuery.isPending || (incidentsQuery.isSuccess && evidenceQuery.isPending);
+  const error = incidentsQuery.error ?? (evidenceQuery.isError ? evidenceQuery.error : null);
+  const evidenceList = evidenceQuery.data ?? [];
+
+  const handleRetry = (): void => {
+    void incidentsQuery.refetch();
+    void evidenceQuery.refetch();
+  };
 
   const handleRevealEvidence = (evidenceItem: Evidence): void => {
-    setRevealedEvidenceId(evidenceItem.id);
-    setActivityMessage(`Revealed ${evidenceItem.title}.`);
+    if (!isCommander || evidenceItem.isRevealed) return;
+    revealMutation.mutate(evidenceItem.id);
   };
 
   const visibleEvidence = evidenceList.filter((evidenceItem) =>
@@ -70,6 +97,11 @@ export function EvidencePage() {
       >
         {activityMessage}
       </p>
+      {revealMutation.isError && (
+        <p className="mt-3 rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm text-red-700 dark:text-red-300" role="alert">
+          {revealMutation.error.message}
+        </p>
+      )}
       <input
         type="text"
         placeholder="Filter evidence by title…"
@@ -80,8 +112,8 @@ export function EvidencePage() {
       <div className="mt-4">
         {isPending ? (
           <LoadingSkeleton />
-        ) : isError ? (
-          <ErrorPanel message={error.message} onRetry={() => void refetch()} />
+        ) : error ? (
+          <ErrorPanel message={error.message} onRetry={handleRetry} />
         ) : visibleEvidence.length === 0 ? (
           <p className="rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
             No evidence matches this filter.
@@ -92,10 +124,9 @@ export function EvidencePage() {
               <EvidenceCard
                 key={evidenceItem.id}
                 variant={index % 2 === 0 ? "default" : "compact"}
-                evidence={{
-                  ...evidenceItem,
-                  isRevealed: evidenceItem.isRevealed || revealedEvidenceId === evidenceItem.id,
-                }}
+                evidence={evidenceItem}
+                canReveal={isCommander}
+                isRevealing={revealMutation.isPending && revealMutation.variables === evidenceItem.id}
                 onReveal={handleRevealEvidence}
               />
             ))}

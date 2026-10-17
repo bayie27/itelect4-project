@@ -6,6 +6,7 @@ import { IncidentPage } from "./pages/IncidentPage";
 import { EvidencePage } from "./pages/EvidencePage";
 import { ActionsPage } from "./pages/ActionsPage";
 import { LoginPage } from "./pages/LoginPage";
+import { RegisterPage } from "./pages/RegisterPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 function App() {
@@ -13,6 +14,7 @@ function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
         <Route element={<ProtectedRoute />}>
           <Route index element={<DashboardPage />} />
           <Route path="incidents/:incidentId" element={<IncidentPage />} />

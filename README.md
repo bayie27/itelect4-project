@@ -40,7 +40,7 @@ Each topic has one canonical home. Update the relevant document when a product r
 
 ## Current milestone
 
-GT3 Part 3 completes the Module 3 frontend milestone. The application now combines React Router, protected routes, persisted Zustand client state, TanStack Query server state, a json-server REST boundary, React Hook Form, Zod runtime validation, and owned Shadcn UI components.
+GT4 Part 2 connects the CIRS frontend to the separate Express backend. The application uses backend registration and login, short-lived Bearer JWTs, creator-scoped REST data, persisted Zustand authentication state, TanStack Query server state, React Hook Form, Zod runtime validation, and the existing Shadcn UI components.
 
 Canonical shared types live in `src/types/index.ts`, reusable lifecycle rules live in `src/domain/rules.ts`, and the original conversion exercise remains isolated under `src/gt1`. The CIRS application uses `User`, `Incident`, `ResponseAction`, and `Evidence` as its domain entities.
 
@@ -48,8 +48,7 @@ Canonical shared types live in `src/types/index.ts`, reusable lifecycle rules li
 
 Interfaces:
 
-- `User`, `Course`, and `Submission` for the Part 1 class requirements
-- `Incident`, `ResponseAction`, and `Evidence` for the CIRS application
+- `User`, `Incident`, `ResponseAction`, and `Evidence` for the CIRS application
 - `ApiResponse<T>`, `PaginatedResponse<T>`, and `ApiError` for API data
 
 Enums:
@@ -77,10 +76,15 @@ Install dependencies:
 npm install
 ```
 
-Run the local API and frontend in separate terminals:
+Configure the frontend API origin in an ignored local environment file:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Set `VITE_API_URL=http://localhost:4000` in `.env.local`, then run the backend from the separate `itelect4-backend` repository and start Vite:
 
 ```bash
-npm run api
 npm run dev
 ```
 
@@ -97,4 +101,6 @@ npm run lint
 npm run build
 ```
 
-The local frontend uses fictional data from `db.json` through json-server on port 3001. Authentication, authorization, lifecycle enforcement, testing, and deployment remain future module work.
+Registration and login call `/api/auth/register` and `/api/auth/login`. Private incidents, response actions, and evidence use the authenticated backend API. The frontend sends the persisted Bearer token through `src/api/client.ts`; the backend remains authoritative for owner scoping, validation, and evidence reveal permissions. Use fictional names, email addresses, and passwords for training accounts.
+
+For Vercel, set `VITE_API_URL` to the backend origin (no `/api` suffix or trailing slash). Vite reads this value at build time. After the frontend receives its deployment URL, set the backend's `CORS_ORIGIN` to that exact origin and redeploy the backend. Follow the backend README for Atlas, Vercel, and the owner-scoped demo seed steps.

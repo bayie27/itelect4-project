@@ -41,6 +41,9 @@ export function Layout() {
               <NavLink to="/actions" className={navLinkClass}>
                 Actions
               </NavLink>
+              <NavLink to="/review" className={navLinkClass}>
+                AI Review
+              </NavLink>
               {token === null ? (
                 <>
                   <NavLink to="/login" className={navLinkClass}>

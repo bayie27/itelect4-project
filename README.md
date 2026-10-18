@@ -104,3 +104,8 @@ npm run build
 Registration and login call `/api/auth/register` and `/api/auth/login`. Private incidents, response actions, and evidence use the authenticated backend API. The frontend sends the persisted Bearer token through `src/api/client.ts`; the backend remains authoritative for owner scoping, validation, and evidence reveal permissions. Use fictional names, email addresses, and passwords for training accounts.
 
 For Vercel, set `VITE_API_URL` to the backend origin (no `/api` suffix or trailing slash). Vite reads this value at build time. After the frontend receives its deployment URL, set the backend's `CORS_ORIGIN` to that exact origin and redeploy the backend. Follow the backend README for Atlas, Vercel, and the owner-scoped demo seed steps.
+
+## Live deployments
+
+- **Frontend:** [itelect4-project-roan.vercel.app](https://itelect4-project-roan.vercel.app)
+- **Backend:** [itelect4-backend-roan.vercel.app](https://itelect4-backend-roan.vercel.app)

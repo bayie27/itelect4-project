@@ -1,6 +1,9 @@
 import type {
   CreateResponseActionInput,
   Evidence,
+  GenerateIncidentReportInput,
+  IncidentReport,
+  IncidentReportSummary,
   Incident,
   ResponseAction,
   User,
@@ -141,4 +144,21 @@ export function revealEvidence(evidenceId: string): Promise<Evidence> {
   return request<Evidence>(`/api/evidence/${encodeURIComponent(evidenceId)}/reveal`, {
     method: "PATCH",
   });
+}
+
+export function generateIncidentReport(input: GenerateIncidentReportInput): Promise<IncidentReport> {
+  return request<IncidentReport>("/api/ai", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function fetchIncidentReports(incidentId: string): Promise<IncidentReportSummary[]> {
+  return request<IncidentReportSummary[]>(
+    `/api/incidents/${encodeURIComponent(incidentId)}/reports`,
+  );
+}
+
+export function fetchIncidentReport(reportId: string): Promise<IncidentReport> {
+  return request<IncidentReport>(`/api/reports/${encodeURIComponent(reportId)}`);
 }

@@ -90,6 +90,25 @@ export interface Evidence {
   revealedById?: ID;
 }
 
+export type { IncidentReportContent } from "../schemas/incidentReportSchema";
+
+export interface IncidentReport {
+  id: ID;
+  incidentId: ID;
+  version: number;
+  /** JSON-serialized IncidentReportContent, validated before it is displayed. */
+  content: string;
+  generatedById: ID;
+  generatedAt: ISODateString;
+}
+
+export type IncidentReportSummary = Omit<IncidentReport, "content">;
+
+export interface GenerateIncidentReportInput {
+  incidentId: ID;
+  prompt: string;
+}
+
 export interface ApiResponse<T> {
   success: boolean;
   data: T;

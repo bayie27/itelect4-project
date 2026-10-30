@@ -1,6 +1,6 @@
 import path from "node:path";
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
 // https://vite.dev/config/
@@ -11,4 +11,9 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
-})
+  test: {
+    environment: "jsdom",
+    setupFiles: ["./src/test/setup.ts"],
+    env: { VITE_API_URL: "http://localhost:4000" },
+  },
+});

@@ -1,8 +1,28 @@
 # Cyber Incident Response Simulator
 
+[![CI](https://github.com/bayie27/itelect4-project/actions/workflows/ci.yml/badge.svg)](https://github.com/bayie27/itelect4-project/actions/workflows/ci.yml)
+
 The Cyber Incident Response Simulator (CIRS) is a semester-long web application for practicing fictional cybersecurity incident-response workflows. Responders inspect evidence and complete response actions while an incident commander creates scenarios, coordinates the team, controls the incident lifecycle, and generates post-incident reports.
 
 CIRS is an educational simulation. It does not scan systems, execute commands, analyze real malware, or use real organizational data.
+
+## Live deployments
+
+- **Frontend:** [itelect4-project-roan.vercel.app](https://itelect4-project-roan.vercel.app)
+- **Backend:** [itelect4-backend-roan.vercel.app](https://itelect4-backend-roan.vercel.app)
+
+## Architecture
+
+```mermaid
+flowchart LR
+  fe["itelect4-project<br/>React + Vite"]
+  be["itelect4-backend<br/>Express API"]
+  db[("MongoDB Atlas")]
+  ai["Gemini API"]
+  fe -- "HTTP + Bearer token" --> be
+  be -- "Mongoose" --> db
+  be -- "server-side API key" --> ai
+```
 
 ## Course fit
 
@@ -40,7 +60,7 @@ Each topic has one canonical home. Update the relevant document when a product r
 
 ## Current milestone
 
-GT4 Part 2 connects the CIRS frontend to the separate Express backend. The application uses backend registration and login, short-lived Bearer JWTs, creator-scoped REST data, persisted Zustand authentication state, TanStack Query server state, React Hook Form, Zod runtime validation, and the existing Shadcn UI components.
+The CIRS frontend connects to the separate Express backend for registration, login, and creator-scoped incident data. It uses short-lived Bearer JWTs, persisted Zustand authentication state, TanStack Query server state, React Hook Form, Zod runtime validation, and the existing Shadcn UI components. The protected review page requests server-generated, versioned reports for fictional resolved incidents. GT6 adds Vitest coverage and GitHub Actions checks for every push.
 
 Canonical shared types live in `src/types/index.ts`, reusable lifecycle rules live in `src/domain/rules.ts`, and the original conversion exercise remains isolated under `src/gt1`. The CIRS application uses `User`, `Incident`, `ResponseAction`, and `Evidence` as its domain entities.
 
@@ -94,18 +114,16 @@ Type-check the project:
 npx tsc --noEmit
 ```
 
-Run lint and the production build:
+Run lint, tests, and the production build:
 
 ```bash
 npm run lint
+npm test
 npm run build
 ```
+
+For watch mode while editing tests, run `npm run test:watch`.
 
 Registration and login call `/api/auth/register` and `/api/auth/login`. Private incidents, response actions, and evidence use the authenticated backend API. The frontend sends the persisted Bearer token through `src/api/client.ts`; the backend remains authoritative for owner scoping, validation, and evidence reveal permissions. Use fictional names, email addresses, and passwords for training accounts.
 
 For Vercel, set `VITE_API_URL` to the backend origin (no `/api` suffix or trailing slash). Vite reads this value at build time. After the frontend receives its deployment URL, set the backend's `CORS_ORIGIN` to that exact origin and redeploy the backend. Follow the backend README for Atlas, Vercel, and the owner-scoped demo seed steps.
-
-## Live deployments
-
-- **Frontend:** [itelect4-project-roan.vercel.app](https://itelect4-project-roan.vercel.app)
-- **Backend:** [itelect4-backend-roan.vercel.app](https://itelect4-backend-roan.vercel.app)

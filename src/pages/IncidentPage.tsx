@@ -1,11 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Link, useParams } from "react-router";
-import { fetchIncidentById } from "../api/client";
+import { fetchIncidentById, fetchResponseActions, transitionIncidentStatus } from "../api/client";
 import { IncidentCard } from "../components/IncidentCard";
+import { canResolveIncident, validIncidentTransitions } from "../domain/rules";
 import { usePrevious } from "../hooks/usePrevious";
 import { useToggle } from "../hooks/useToggle";
-import type { Incident } from "../types";
+import { IncidentStatus, UserRole, type Incident, type ResponseAction } from "../types";
+import { useAuthStore } from "../store/authStore";
 
 function LoadingSkeleton() {
   return (
@@ -47,6 +49,11 @@ function ErrorPanel({ message, onRetry }: { message: string; onRetry: () => void
 
 export function IncidentPage() {
   const { incidentId } = useParams<{ incidentId: string }>();
+  const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const [activityMessage, setActivityMessage] = useState(
+    "Open the incident to see a typed interaction.",
+  );
   const { data: incident, isPending, isError, error, refetch } = useQuery<Incident>({
     queryKey: ["incidents", incidentId],
     queryFn: () => {
@@ -58,15 +65,31 @@ export function IncidentPage() {
     },
     enabled: incidentId !== undefined,
   });
-
-  const [activityMessage, setActivityMessage] = useState(
-    "Open the incident to see a typed interaction.",
-  );
+  const actionsQuery = useQuery<ResponseAction[]>({
+    queryKey: ["responseActions", incidentId ? [incidentId] : []],
+    queryFn: () => (incidentId ? fetchResponseActions([incidentId]) : Promise.resolve([])),
+    enabled: incidentId !== undefined,
+  });
+  const transitionMutation = useMutation({
+    mutationFn: ({ targetStatus }: { targetStatus: IncidentStatus }) => {
+      if (!incidentId) throw new Error("An incident id is required.");
+      return transitionIncidentStatus(incidentId, targetStatus);
+    },
+    onSuccess: (updatedIncident) => {
+      setActivityMessage(`Incident moved to ${updatedIncident.status}.`);
+      void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+      void queryClient.invalidateQueries({ queryKey: ["incidents", updatedIncident.id] });
+    },
+  });
   const [showDescription, toggleShowDescription] = useToggle(false);
   const previousActivityMessage = usePrevious(activityMessage);
 
   const handleOpenIncident = (openedIncident: Incident): void => {
     setActivityMessage(`Opened ${openedIncident.title}.`);
+  };
+
+  const handleTransition = (targetStatus: IncidentStatus): void => {
+    transitionMutation.mutate({ targetStatus });
   };
 
   if (incidentId === undefined) {
@@ -138,6 +161,57 @@ export function IncidentPage() {
           <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{incident.description}</p>
         )}
       </div>
+      {user?.role === UserRole.INCIDENT_COMMANDER && incident.status !== IncidentStatus.RESOLVED && (
+        <section className="mt-5 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100">Incident lifecycle</h3>
+          <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            Current status: <span className="font-mono">{incident.status}</span>
+          </p>
+          {incident.status === IncidentStatus.CONTAINED && actionsQuery.isPending && (
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400" role="status">
+              Checking response actions before resolution…
+            </p>
+          )}
+          {incident.status === IncidentStatus.CONTAINED && actionsQuery.isError && (
+            <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">
+              Could not check response actions. Retry the incident page before resolving.
+            </p>
+          )}
+          {incident.status === IncidentStatus.CONTAINED && actionsQuery.isSuccess &&
+            !canResolveIncident(incident, actionsQuery.data) && (
+              <p className="mt-2 text-sm text-amber-800 dark:text-amber-200">
+                Reject or complete all response actions before resolving this incident.
+              </p>
+            )}
+          <div className="mt-3 flex flex-wrap gap-2">
+            {validIncidentTransitions[incident.status].map((targetStatus) => {
+              const isResolve = targetStatus === IncidentStatus.RESOLVED;
+              const resolutionReady =
+                actionsQuery.isSuccess && canResolveIncident(incident, actionsQuery.data);
+              const disabled =
+                transitionMutation.isPending ||
+                (isResolve && (!resolutionReady || actionsQuery.isError || actionsQuery.isPending));
+
+              return (
+                <button
+                  key={targetStatus}
+                  className={`${secondaryButtonClass} disabled:cursor-not-allowed disabled:opacity-50`}
+                  type="button"
+                  disabled={disabled}
+                  onClick={() => handleTransition(targetStatus)}
+                >
+                  {isResolve ? "Move to resolved" : `Move to ${targetStatus}`}
+                </button>
+              );
+            })}
+          </div>
+          {transitionMutation.isError && (
+            <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">
+              {transitionMutation.error.message}
+            </p>
+          )}
+        </section>
+      )}
     </section>
   );
 }

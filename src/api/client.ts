@@ -8,6 +8,7 @@ import type {
   ResponseAction,
   User,
 } from "../types";
+import { IncidentStatus, ResponseActionStatus } from "../types";
 import { useAuthStore } from "../store/authStore";
 
 export interface AuthSession {
@@ -112,6 +113,16 @@ export function fetchIncidentById(incidentId: string): Promise<Incident> {
   return request<Incident>(`/api/incidents/${encodeURIComponent(incidentId)}`);
 }
 
+export function transitionIncidentStatus(
+  incidentId: string,
+  status: IncidentStatus,
+): Promise<Incident> {
+  return request<Incident>(`/api/incidents/${encodeURIComponent(incidentId)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function fetchResponseActions(incidentIds: readonly string[]): Promise<ResponseAction[]> {
   const actionLists = await Promise.all(
     incidentIds.map((incidentId) =>
@@ -128,6 +139,13 @@ export function createResponseAction(
   return request<ResponseAction>(`/api/incidents/${encodeURIComponent(incidentId)}/actions`, {
     method: "POST",
     body: JSON.stringify(input),
+  });
+}
+
+export function rejectResponseAction(actionId: string): Promise<ResponseAction> {
+  return request<ResponseAction>(`/api/actions/${encodeURIComponent(actionId)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: ResponseActionStatus.REJECTED }),
   });
 }
 

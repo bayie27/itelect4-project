@@ -2,7 +2,8 @@ import { ResponseActionStatus, type ResponseAction } from "../types";
 
 export interface ResponseActionCardProps {
   action: ResponseAction;
-  onAdvance: (action: ResponseAction) => void;
+  onReject?: (action: ResponseAction) => void;
+  isRejecting?: boolean;
 }
 
 const badgeBase =
@@ -21,7 +22,7 @@ const statusStyles: Record<ResponseActionStatus, string> = {
     "border-red-500/40 bg-red-500/10 text-red-700 dark:text-red-300",
 };
 
-export function ResponseActionCard({ action, onAdvance }: ResponseActionCardProps) {
+export function ResponseActionCard({ action, onReject, isRejecting = false }: ResponseActionCardProps) {
   return (
     <article className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-cyan-400/60 hover:shadow-[0_0_12px_rgba(34,211,238,0.15)] dark:border-slate-800 dark:bg-slate-900">
       <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">
@@ -37,13 +38,16 @@ export function ResponseActionCard({ action, onAdvance }: ResponseActionCardProp
         </span>
         <span className={`${badgeBase} ${statusStyles[action.status]}`}>{action.status}</span>
       </div>
-      <button
-        className="mt-3 inline-flex items-center rounded-md border border-cyan-500/50 bg-cyan-500/10 px-3 py-1.5 text-sm font-medium text-cyan-700 transition-colors hover:border-cyan-400 hover:bg-cyan-500/20 focus:outline-none focus:ring-2 focus:ring-cyan-400/50 dark:text-cyan-300"
-        type="button"
-        onClick={() => onAdvance(action)}
-      >
-        Review action
-      </button>
+      {action.status === ResponseActionStatus.PROPOSED && onReject && (
+        <button
+          className="mt-3 inline-flex items-center rounded-md border border-red-500/50 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-700 transition-colors hover:border-red-400 hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-400/50 disabled:cursor-not-allowed disabled:opacity-50 dark:text-red-300"
+          type="button"
+          disabled={isRejecting}
+          onClick={() => onReject(action)}
+        >
+          {isRejecting ? "Rejecting…" : "Reject proposal"}
+        </button>
+      )}
     </article>
   );
 }

@@ -6,12 +6,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ResponseActionCard } from "../components/ResponseActionCard";
-import { createResponseAction, fetchIncidents, fetchResponseActions } from "../api/client";
+import {
+  createResponseAction,
+  fetchIncidents,
+  fetchResponseActions,
+  rejectResponseAction,
+} from "../api/client";
 import type {
   CreateResponseActionInput,
   Incident,
   ResponseAction,
 } from "../types";
+import { UserRole } from "../types";
+import { useAuthStore } from "../store/authStore";
 import {
   responseActionSchema,
   type ResponseActionFormValues,
@@ -59,6 +66,8 @@ const fieldErrorClass = "mt-1 text-sm text-red-700 dark:text-red-300";
 
 export function ActionsPage() {
   const queryClient = useQueryClient();
+  const user = useAuthStore((state) => state.user);
+  const canRejectAction = user?.role === UserRole.INCIDENT_COMMANDER;
   const incidentsQuery = useQuery<Incident[]>({
     queryKey: ["incidents"],
     queryFn: fetchIncidents,
@@ -103,8 +112,16 @@ export function ActionsPage() {
     },
   });
 
-  const handleReviewAction = (action: ResponseAction): void => {
-    setActivityMessage(`Reviewing ${action.title}.`);
+  const rejectAction = useMutation({
+    mutationFn: rejectResponseAction,
+    onSuccess: (rejectedAction) => {
+      void queryClient.invalidateQueries({ queryKey: ["responseActions"] });
+      setActivityMessage(`Rejected ${rejectedAction.title}.`);
+    },
+  });
+
+  const handleRejectAction = (action: ResponseAction): void => {
+    rejectAction.mutate(action.id);
   };
 
   const handleAddAction = (values: ResponseActionFormValues): void => {
@@ -161,6 +178,11 @@ export function ActionsPage() {
       >
         {activityMessage}
       </p>
+      {rejectAction.isError && (
+        <p className="mt-2 text-sm text-red-700 dark:text-red-300" role="alert">
+          {rejectAction.error.message}
+        </p>
+      )}
 
       {incidents.length === 0 ? (
         <p className="mt-4 rounded-lg border border-dashed border-slate-300 p-6 text-sm text-slate-600 dark:border-slate-700 dark:text-slate-400">
@@ -277,7 +299,12 @@ export function ActionsPage() {
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {actions.map((action) => (
-              <ResponseActionCard key={action.id} action={action} onAdvance={handleReviewAction} />
+              <ResponseActionCard
+                key={action.id}
+                action={action}
+                onReject={canRejectAction ? handleRejectAction : undefined}
+                isRejecting={rejectAction.isPending && rejectAction.variables === action.id}
+              />
             ))}
           </div>
         )}
